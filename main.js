@@ -1,3 +1,7 @@
+let autoSwitchTime = 2000;
+let autoSwitchEnable = true;
+let hoverDisplayDelay = 500;
+
 const previewOffset = {
     x: 30,
     y: -10
@@ -5,14 +9,42 @@ const previewOffset = {
 
 const previewMargin = 10;
 
-const extractInfo = (content) => {
-    const tagsElement = content.querySelectorAll('#content > div')[0]
+const updateOption = () => {
+    chrome.storage.sync.get(
+        ["autoSwitchTime", "autoSwitchEnable", "hoverDisplayDelay"],
+        (items) => {
+            let initialSetting = new Object();
+            if(!items.autoSwitchTime)
+                items.autoSwitchTime = initialSetting.autoSwitchTime = 2;
+            if(items.autoSwitchEnable === null || items.autoSwitchEnable === undefined)
+                items.autoSwitchEnable = initialSetting.autoSwitchEnable = true;
+            if(!items.hoverDisplayDelay)
+                items.hoverDisplayDelay = initialSetting.hoverDisplayDelay = 0.5;
+            if(Object.keys(items).length)
+                chrome.storage.sync.set(initialSetting);
+            
+            hoverDisplayDelay = items.hoverDisplayDelay * 1000;
+            autoSwitchEnable = items.autoSwitchEnable;
+            autoSwitchTime = items.autoSwitchTime * 1000;
+    });
+};
+updateOption();
+
+chrome.runtime.onMessage.addListener(msg => {
+    if(msg === 'updated')
+        updateOption();
+});
+
+let SwitchIntervalIdentifier;
+
+const extractInfo = (html) => {
+    const tagsElement = html.querySelectorAll('#content > div')[0]
                                .getElementsByClassName('tag');
     let tags = [];
     for(const tag of tagsElement)
         tags.push(tag.text);
 
-    const imgsElement = content.querySelectorAll('#images img');
+    const imgsElement = html.querySelectorAll('#images img');
     let images = [];
     for(const image of imgsElement)
         if(image.getAttribute('src')) images.push(image.src);
@@ -21,6 +53,30 @@ const extractInfo = (content) => {
         tags,
         images
     };
+}
+
+const switchImage = (type, preview) => {
+    const images = preview.querySelectorAll('img');
+    if(images.length <= 1) return;
+
+    let index;
+    for(let i = 0; i < images.length; ++i)
+    {
+        if(images[i].classList.contains('active'))
+        {
+            index = i;
+            images[i].classList.remove('active');
+        }
+    }
+    
+    let nextIndex;
+    if(type === 'ArrowRight')
+        nextIndex = (index === (images.length - 1 )) ? 0 : (index + 1);
+    if(type === 'ArrowLeft')
+        nextIndex = (index === 0) ? (images.length - 1) : (index - 1);
+
+    images[nextIndex].classList.add('active');
+    preview.querySelector('div:nth-child(1) p').innerText = `< ${nextIndex + 1}/${images.length} >`;
 }
 
 const createElement = ({tags, images}) => {
@@ -45,6 +101,10 @@ const createElement = ({tags, images}) => {
                 main.style.bottom = previewMargin;
             }
             main.style.visibility = 'visible';
+            if(!autoSwitchEnable) return;
+            SwitchIntervalIdentifier = setInterval(() => {
+                switchImage('ArrowRight', main);
+            }, autoSwitchTime);
         }
         image.src = images[i];
         if(i === 0) image.className = "active";
@@ -61,9 +121,7 @@ const createElement = ({tags, images}) => {
         callback = (main) => {
             const rect = main.getBoundingClientRect();
             if(rect.top < previewMargin)
-            {
                 main.style.top = '10px';
-            }
             else if(rect.bottom > innerHeight - previewMargin)
             {
                 main.style.removeProperty('top');
@@ -95,33 +153,14 @@ const createElement = ({tags, images}) => {
     }
 
     main.id = 'contentPreview';
-
     main.appendChild(imageDiv);
     main.appendChild(tagsDiv);
+
     return {
         element: main,
         callback
     };
 }
-
-let cursor_x = null;
-let cursor_y = null;
-    
-const onMouseUpdate = (e) => {
-    cursor_x = e.clientX;
-    cursor_y = e.clientY;
-}
-
-const getMouseX = () => {
-    return cursor_x;
-}
-
-const getMouseY = () => {
-    return cursor_y;
-}
-    
-document.addEventListener('mousemove', onMouseUpdate, false);
-document.addEventListener('mouseenter', onMouseUpdate, false);
 
 const possibleContainers = ["tablesorter", 'gamelist'];
 
@@ -158,7 +197,7 @@ if(gameList)
 
                 document.body.appendChild(element);
                 if(callback) callback(element);
-            }, 500);
+            }, hoverDisplayDelay);
         });
 
         link.addEventListener('mousemove', (e) => {
@@ -172,6 +211,11 @@ if(gameList)
 
         link.addEventListener('mouseleave', (e) => {
             clearTimeout(timer);
+            if(SwitchIntervalIdentifier)
+            {
+                clearInterval(SwitchIntervalIdentifier);
+                SwitchIntervalIdentifier = null;
+            }
             const preview = document.getElementById('contentPreview');
             if(preview) preview.remove();
         })
@@ -185,25 +229,31 @@ document.addEventListener('keydown', (e) => {
     const preview = document.getElementById('contentPreview');
     if(!preview) return;
 
-    const images = preview.querySelectorAll('img');
-    if(images.length <= 1) return;
-
-    let index;
-    for(let i = 0; i < images.length; ++i)
+    switchImage(name, preview);
+    if(SwitchIntervalIdentifier)
     {
-        if(images[i].classList.contains('active'))
-        {
-            index = i;
-            images[i].classList.remove('active');
-        }
+        clearInterval(SwitchIntervalIdentifier);
+        SwitchIntervalIdentifier = setInterval(() => {
+            switchImage('ArrowRight', preview);
+        }, autoSwitchTime);
     }
-    
-    let nextIndex;
-    if(name === 'ArrowRight')
-        nextIndex = (index === (images.length - 1 )) ? 0 : (index + 1);
-    if(name === 'ArrowLeft')
-        nextIndex = (index === 0) ? (images.length - 1) : (index - 1);
-
-    images[nextIndex].classList.add('active');
-    preview.querySelector('div:nth-child(1) p').innerText = `< ${nextIndex + 1}/${images.length} >`;
 });
+
+let cursor_x = null;
+let cursor_y = null;
+    
+const onMouseUpdate = (e) => {
+    cursor_x = e.clientX;
+    cursor_y = e.clientY;
+}
+
+const getMouseX = () => {
+    return cursor_x;
+}
+
+const getMouseY = () => {
+    return cursor_y;
+}
+    
+document.addEventListener('mousemove', onMouseUpdate, false);
+document.addEventListener('mouseenter', onMouseUpdate, false);

@@ -1,0 +1,28 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" type="text/css" href="popup.css">
+    </head>
+    <body>
+        <div class="optionContainer">
+            <span>悬浮展示延迟时长(秒)</span>
+            <input type="number" step="0.1" min="0.1" max="5" id="hoverDelay"/>
+        </div>
+        <div class="optionContainer">
+            <span>开启图片自动换页</span>
+            <input type="checkbox" id="switchEnable"/>
+        </div>
+        <div class="optionContainer hide">
+            <span>图片自动换页间隔(秒)</span>
+            <input type="number" step="0.1" min="0.1" max="30" id="SwitchGap"/>
+        </div>
+        <div class="submitContainer">
+            <button type="button" id="submitButton">保存</button>
+        </div>
+        <div class="msgContainer">
+            <span id="error"></span>
+            <span id="success"></span>
+        </div>
+    </body>
+    <script src="popup.js"></script>
+</html>

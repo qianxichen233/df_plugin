@@ -1,0 +1,64 @@
+body {
+    min-width: 200px;
+    height: max-content;
+    margin-bottom: 0;
+}
+
+html {
+    height: max-content;
+}
+
+.optionContainer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    font-weight: bold;
+    font-size: 10pt;
+    margin-bottom: 5px;
+}
+
+.optionContainer input {
+    display: inline-block;
+    max-width: 50px;
+}
+
+.optionContainer input[type="checkbox"]:hover {
+    cursor: pointer;
+}
+
+.submitContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+    user-select: none;
+}
+
+.submitContainer button:hover {
+    cursor: pointer;
+}
+
+.msgContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+    font-weight: bold;
+}
+
+.msgContainer:not(.active) {
+    display: none;
+}
+
+#error {
+    color: red;
+}
+
+#success {
+    color: green;
+}
+
+.hide {
+    display: none;
+}
