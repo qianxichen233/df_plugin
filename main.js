@@ -3,6 +3,8 @@ const previewOffset = {
     y: -10
 };
 
+const previewMargin = 10;
+
 const extractInfo = (content) => {
     const tagsElement = content.querySelectorAll('#content > div')[0]
                                .getElementsByClassName('tag');
@@ -25,9 +27,25 @@ const createElement = ({tags, images}) => {
     const main = document.createElement('div');
     const imageDiv = document.createElement('div');
     const tagsDiv = document.createElement('div');
+
+    let callback;
+    main.style.visibility = 'hidden';
+
     for(let i = 0; i < images.length; ++i)
     {
         const image = document.createElement('img');
+        image.onload = (e) => {
+            if(!e.target.classList.contains('active')) return;
+            const rect = main.getBoundingClientRect();
+            if(rect.top < previewMargin)
+                main.style.top = '10px';
+            else if(rect.bottom > innerHeight - previewMargin)
+            {
+                main.style.removeProperty('top');
+                main.style.bottom = previewMargin;
+            }
+            main.style.visibility = 'visible';
+        }
         image.src = images[i];
         if(i === 0) image.className = "active";
         
@@ -39,6 +57,20 @@ const createElement = ({tags, images}) => {
         noImg.innerText = "No Preview Image";
         imageDiv.appendChild(noImg);
         imageDiv.className = "noImg";
+
+        callback = (main) => {
+            const rect = main.getBoundingClientRect();
+            if(rect.top < previewMargin)
+            {
+                main.style.top = '10px';
+            }
+            else if(rect.bottom > innerHeight - previewMargin)
+            {
+                main.style.removeProperty('top');
+                main.style.bottom = previewMargin;
+            }
+            main.style.visibility = 'visible';
+        }
     }
     else
     {
@@ -66,7 +98,10 @@ const createElement = ({tags, images}) => {
 
     main.appendChild(imageDiv);
     main.appendChild(tagsDiv);
-    return main;
+    return {
+        element: main,
+        callback
+    };
 }
 
 let cursor_x = null;
@@ -113,21 +148,16 @@ if(gameList)
                 const page = Parser.parseFromString(content, 'text/html');;
 
                 const info = extractInfo(page);
-                const element = createElement(info);
+                const {element, callback} = createElement(info);
 
                 const x = getMouseX();
                 const y = getMouseY();
 
-                if(y > 2 * innerHeight / 3)
-                    element.style.bottom = innerHeight - (y - previewOffset.y) + "px";
-                else if(y < innerHeight / 3)
-                    element.style.top = y + previewOffset.y + "px";
-                else
-                    element.style.top = y - 150 + "px";
-
                 element.style.left = x + previewOffset.x + "px";
+                element.style.top = y + previewOffset.y + "px";
 
                 document.body.appendChild(element);
+                if(callback) callback(element);
             }, 500);
         });
 
@@ -136,10 +166,8 @@ if(gameList)
             if(!preview) return;
 
             const x = e.clientX;
-            //const y = e.clientY;
 
             preview.style.left = x + previewOffset.x + "px";
-            //preview.style.top = y + previewOffset.y + "px";
         });
 
         link.addEventListener('mouseleave', (e) => {
