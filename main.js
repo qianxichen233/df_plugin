@@ -38,6 +38,16 @@ chrome.runtime.onMessage.addListener(msg => {
 let SwitchIntervalIdentifier;
 let focusedLink;
 
+const checkCursorInside = (ele) => {
+    const rect = ele.getBoundingClientRect();
+    const cursorX = getMouseX();
+    const cursorY = getMouseY();
+    if(cursorX >= rect.left && cursorX <= rect.right &&
+       cursorY >= rect.top && cursorY <= rect.bottom)
+        return true;
+    return false;
+}
+
 const extractInfo = (html) => {
     const tagsElement = html.querySelectorAll('#content > div')[0]
                                .getElementsByClassName('tag');
@@ -197,6 +207,7 @@ if(gameList)
                 element.style.left = x + previewOffset.x + "px";
                 element.style.top = y + previewOffset.y + "px";
 
+                if(!checkCursorInside(link)) return;
                 document.body.appendChild(element);
                 if(callback) callback(element);
             }, hoverDisplayDelay);
@@ -241,16 +252,6 @@ document.addEventListener('keydown', (e) => {
         }, autoSwitchTime);
     }
 });
-
-const checkCursorInside = (ele) => {
-    const rect = ele.getBoundingClientRect();
-    const cursorX = getMouseX();
-    const cursorY = getMouseY();
-    if(cursorX >= rect.left && cursorX <= rect.right &&
-       cursorY >= rect.top && cursorY <= rect.bottom)
-        return true;
-    return false;
-}
 
 document.addEventListener('scroll', () => {
     const preview = document.getElementById('contentPreview');
