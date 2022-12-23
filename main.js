@@ -36,6 +36,7 @@ chrome.runtime.onMessage.addListener(msg => {
 });
 
 let SwitchIntervalIdentifier;
+let focusedLink;
 
 const extractInfo = (html) => {
     const tagsElement = html.querySelectorAll('#content > div')[0]
@@ -181,6 +182,7 @@ if(gameList)
         
         link.addEventListener('mouseover', (e) => {
             timer = setTimeout(async () => {
+                focusedLink = link;
                 const raw = await fetch(link.href);
                 const content = await raw.text();
                 const Parser = new DOMParser();
@@ -210,6 +212,7 @@ if(gameList)
         });
 
         link.addEventListener('mouseleave', (e) => {
+            focusedLink = null;
             clearTimeout(timer);
             if(SwitchIntervalIdentifier)
             {
@@ -237,6 +240,22 @@ document.addEventListener('keydown', (e) => {
             switchImage('ArrowRight', preview);
         }, autoSwitchTime);
     }
+});
+
+const checkCursorInside = (ele) => {
+    const rect = ele.getBoundingClientRect();
+    const cursorX = getMouseX();
+    const cursorY = getMouseY();
+    if(cursorX >= rect.left && cursorX <= rect.right &&
+       cursorY >= rect.top && cursorY <= rect.bottom)
+        return true;
+    return false;
+}
+
+document.addEventListener('scroll', () => {
+    const preview = document.getElementById('contentPreview');
+    if(!preview || !focusedLink) return;
+    if(!checkCursorInside(focusedLink)) preview.remove();
 });
 
 let cursor_x = null;
