@@ -265,6 +265,10 @@ let cursor_y = null;
 const onMouseUpdate = (e) => {
     cursor_x = e.clientX;
     cursor_y = e.clientY;
+    
+    const preview = document.getElementById('contentPreview');
+    if(!preview || !focusedLink) return;
+    if(!checkCursorInside(focusedLink)) preview.remove();
 }
 
 const getMouseX = () => {
